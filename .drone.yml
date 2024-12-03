@@ -25,7 +25,6 @@ steps:
       - cd /home/ubuntu/testing-golang/Dummy-Website
       - nohup ./testing-maingo &
       - sleep 5
-      - cat nohup.out
       - echo "Deployed"
 
   - name: Goofy ahh
