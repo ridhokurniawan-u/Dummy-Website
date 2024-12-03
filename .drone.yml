@@ -9,6 +9,8 @@ steps:
       - mkdir -p /home/ubuntu/testing-golang
       - cd /home/ubuntu/testing-golang
       - git clone https://github.com/ridhokurniawan-u/Dummy-Website.git
+      - go mod init .
+      - go mod tidy
       - CGO_ENABLED=0 GOOS=linux go build -o testing-maingo
 
   - name: Deploy
