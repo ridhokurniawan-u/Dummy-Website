@@ -3,22 +3,6 @@ type: exec
 name: runner-test
 
 steps:
-  - name: Build
-    commands: 
-      - echo "Starting Build"
-      - mkdir -p /home/ubuntu/testing-golang
-      - cd /home/ubuntu/testing-golang
-      - git clone https://github.com/ridhokurniawan-u/Dummy-Website.git
-      - CGO_ENABLED=0 GOOS=linux go build -o testing-maingo
-
-  - name: Deploy
-    commands:
-      - echo "Deploying"
-      - cd /home/ubuntu/testing-golang
-      - nohup ./testing-maingo &
-      - tail nohup.out
-      - echo "Deployed"
-
   - name: Goofy ahh
     commands:
       - echo "Hello, World!"
