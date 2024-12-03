@@ -21,7 +21,7 @@ steps:
       - echo "Deploying"
       - cd /home/ubuntu/testing-golang/Dummy-Website
       - nohup ./testing-maingo &
-      - tail nohup.out
+      - cat nohup.out
       - echo "Deployed"
 
   - name: Goofy ahh
