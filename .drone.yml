@@ -19,7 +19,7 @@ steps:
   - name: Deploy
     commands:
       - echo "Killing Old Deploy"
-      - cd ~
+      - cd /home/ubuntu
       - sh test.sh
       - echo "Deploying"
       - cd /home/ubuntu/testing-golang/Dummy-Website
