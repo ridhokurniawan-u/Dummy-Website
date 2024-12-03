@@ -23,7 +23,7 @@ steps:
       - sh test.sh
       - echo "Deploying"
       - cd /home/ubuntu/testing-golang/Dummy-Website
-      - nohup ./testing-maingo &
+      - nohup ./testing-maingo > nohup.out 2>&1 & 
       - sleep 5
       - echo "Deployed"
 
