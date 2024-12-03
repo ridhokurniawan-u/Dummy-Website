@@ -7,7 +7,7 @@ steps:
     commands: 
       - cd /home/ubuntu/ubuntupem
       - |
-        ssh -i ubuntu512.pem ubuntu@13.250.98.118 <<EOF
+        ssh -i ubuntu512mb.pem ubuntu@13.250.98.118 <<EOF
         echo "Deleting Old Build"
         rm -r -f /home/ubuntu/testing-golang
         echo "Starting Build"
