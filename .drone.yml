@@ -3,6 +3,17 @@ type: exec
 name: runner-test
 
 steps:
+  - name: ssh-ing
+    image: appleboy/drone-ssh
+    settings:
+      host: 13.250.98.118
+      username: ubuntu
+      key: 
+        from_secret: ssh-passkey
+      port: 22
+      script:
+        - echo "Hello"
+      
   - name: Build
     commands: 
       - echo "Deleting Old Build"
