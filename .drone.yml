@@ -19,13 +19,20 @@ steps:
   - name: Deploy
     commands:
       - echo "Killing Old Deploy"
-      - cd /home/ubuntu
-      - sh test.sh
+      - |
+        PIDS=$(pidof testing-maingo)
+        if [ -n "$PIDS" ]; then
+          sudo kill -9 $PIDS
+          echo "Process 'testing-maingo' terminated."
+        else
+          echo "No process found for 'testing-maingo'."
+        fi
       - echo "Deploying"
       - cd /home/ubuntu/testing-golang/Dummy-Website
-      - nohup ./testing-maingo > nohup.out 2>&1 & 
+      - nohup ./testing-maingo > nohup.out 2>&1 &
       - sleep 5
       - echo "Deployed"
+  
 
   - name: Goofy ahh
     commands:
