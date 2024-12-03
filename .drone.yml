@@ -19,7 +19,7 @@ steps:
   - name: Deploy
     commands:
       - echo "Deploying"
-      - cd /home/ubuntu/testing-golang
+      - cd /home/ubuntu/testing-golang/Dummy-Website
       - nohup ./testing-maingo &
       - tail nohup.out
       - echo "Deployed"
