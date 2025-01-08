@@ -5,6 +5,7 @@ name: runner-test
 steps:
   - name: Build
     commands: 
+      - export PATH=$PATH:/usr/local/go/bin
       - echo "Deleting Old Build"
       - rm -r -f /home/ubuntu/testing-golang
       - echo "Starting Build"
