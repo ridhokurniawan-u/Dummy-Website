@@ -3,23 +3,6 @@ type: exec
 name: runner-test
 
 steps:
-  - name: ssh-ing
-    commands: 
-      - cd /home/ubuntu/ubuntupem
-      - |
-        ssh -i ubuntu512mb.pem ubuntu@13.250.98.118 <<EOF
-        echo "Deleting Old Build"
-        rm -r -f /home/ubuntu/testing-golang
-        echo "Starting Build"
-        mkdir -p /home/ubuntu/testing-golang
-        cd /home/ubuntu/testing-golang
-        git clone https://github.com/ridhokurniawan-u/Dummy-Website.git
-        cd /home/ubuntu/testing-golang/Dummy-Website
-        go mod init mango
-        go mod tidy
-        CGO_ENABLED=0 GOOS=linux go build -o testing-maingo
-        EOF
-        
   - name: Build
     commands: 
       - echo "Deleting Old Build"
