@@ -1,0 +1,41 @@
+- name: My First Playbook
+  hosts: myhosts
+  tasks:
+  - name: pinging hosts
+    ansible.builtin.ping:
+
+  - name: Print message
+    ansible.builtin.debug:
+      msg: Hello World
+
+  - name: checking disk space
+    ansible.builtin.shell: df
+    register: disk_usage
+
+  - name: Display Output
+    ansible.builtin.debug:
+      var: disk_usage.stdout_lines
+
+  - name: Cloning Git
+    ansible.builtin.shell: |
+      git clone https://github.com/ridhokurniawan-u/Dummy-Website.git
+      cd /home/ubuntu/Dummy-Website
+      go mod init mango
+      go mod tidy
+      CGO_ENABLED=0 GOOS=linux go build -o testing-maingo
+    register: build_logs
+
+  - name: Display Build Log
+    ansible.builtin.debug:
+      var: build_logs.stdout_lines
+
+  - name: Running Service with nohup
+    ansible.builtin.shell: |
+      cd /home/ubuntu/Dummy-Website
+      nohup ./testing-maingo > nohup.out 2>&1 &
+      tail nohup.out
+    register: deploy_logs
+
+  - name: display Deploy Log
+    ansible.builtin.debug:
+      var: deploy_logs.stdout_lines
