@@ -44,6 +44,8 @@
   - name: Running Service with nohup
     ansible.builtin.shell: |
       cd /home/ubuntu/Dummy-Website
+      mv nohup.out $(date +%F-%H:%M).log && touch nohup.log
       nohup ./testing-maingo > nohup.out 2>&1 &
       tail nohup.out
     register: deploy_logs
+    
