@@ -26,6 +26,7 @@
 
   - name: Cloning Git
     ansible.builtin.shell: |
+      rm /home/ubuntu/Dummy-Website
       git clone https://github.com/ridhokurniawan-u/Dummy-Website.git
       cd /home/ubuntu/Dummy-Website
       go mod init mango
