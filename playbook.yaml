@@ -48,8 +48,8 @@
       nohup ./testing-maingo > testing-maingo.out 2>&1 &
       tail testing-maingo.out
     register: deploy_logs
-
- - name: Logs
-   ansible.builtin.debug:
-     var: deploy_logs
+  
+  - name: Logs
+    ansible.builtin.debug:
+     vars: deploy_logs
     
