@@ -36,15 +36,14 @@
       go mod tidy
       CGO_ENABLED=0 GOOS=linux go build -o testing-maingo
 
-  - name: Kill old process
-    ansible.builtin.shell: |
-      PIDS=\$(pidof testing-maingo)
-      if [ -n "\$PIDS" ]; then
-        sudo kill -9 \$PIDS
-        echo "Process 'testing-maingo' terminated."
-      else
-        echo "No process found for 'testing-maingo'."
-      fi
+  - name: Checking old service
+    ansible.builtin.command: "pidof testing-maingo"
+    register: pidof_result
+    ignore_errors: yes
+
+  - name: Kill process
+    ansible.builtin.shell: "sudo kill -9 {{ pidof_result.stdout }}"
+    when: pidof_result.stdout != ""
       
   - name: Running Service with nohup
     ansible.builtin.shell: |
