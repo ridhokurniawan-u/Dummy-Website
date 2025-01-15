@@ -3,10 +3,6 @@
   tasks:
   - name: pinging hosts
     ansible.builtin.ping:
-    
-  - name: Display Output
-    ansible.builtin.debug:
-      var: disk_usage.stdout_lines
 
   - name: Backup old files
     ansible.builtin.shell: |
