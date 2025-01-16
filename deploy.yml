@@ -3,7 +3,7 @@
   tasks:
   - name: Backup old version
     ansible.builtin.file:
-      path: /home/ubuntu/Dummy-Website/Backups
+      path: /home/ubuntu/Dummy-Website/backups
       state: directory
       mode: "0755"
 
@@ -19,7 +19,7 @@
       if [ -f testing-maingo.out ]; then
         mv testing-maingo.out /home/ubuntu/Dummy-Website/backups/testing-maingo_$(date +%F-%H:%M).log
       else
-        echo "No Old Log ound"
+        echo "No Log Found"
       fi
       
   - name: Copy the new binary to the production server
