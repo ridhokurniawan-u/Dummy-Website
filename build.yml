@@ -22,7 +22,7 @@ tasks:
 
   - name: Compile Go Code
     ansible.builtin.command: >
-    CGO_ENABLED=0 GOOS=linux go build -o testing-maingo
+      CGO_ENABLED=0 GOOS=linux go build -o testing-maingo
     args:
       chdir: /tmp/Dummy-Website
 
