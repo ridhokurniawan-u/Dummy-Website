@@ -6,7 +6,7 @@ import (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "<h1>Welcome to My Dummy Website</h1><p>This is a test website served by Go! wonder if this actually updated</p>")
+    fmt.Fprintf(w, "<h1>Welcome to My Dummy Website</h1><p>This is a test website served by Go! wonder if this actually updated, also pipeline to build achkhsually wroks :3</p>")
 }
 
 func main() {
