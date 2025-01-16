@@ -1,0 +1,44 @@
+- name: Deploy Pipeline CAP
+  hosts: myhosts
+  task:
+  - name: Backup old version
+    ansible.builtin.file:
+      path: /home/ubuntu/Dummy-Website/Backups
+      state: directory
+      mode: "0755"
+
+  - name: Back up the old binary and logs
+    ansible.builtin.shell: |
+      cd /home/ubuntu/Dummy-Website
+      if [ -f testing-maingo ]; then
+        mv testing-maingo backups/testing-maingo_$(date +%F-%H:%M)
+      fi
+      if [ -f testing-maingo.out ]; then
+        mv testing-maingo.out backups/testing-maingo_$(date +%F-%H:%M).log
+      fi
+      
+  - name: Copy the new binary to the production server
+    ansible.builtin.copy:
+      src: "/tmp/Dummy-Website/testing-maingo"
+      dest: "/home/ubuntu/Dummy-Website/testing-maingo"
+      mode: "0755"
+
+  - name: Checking old service
+    ansible.builtin.command: "pidof testing-maingo"
+    register: pidof_result
+    ignore_errors: yes
+    
+  - name: Kill process
+    ansible.builtin.shell: "sudo kill -9 {{ pidof_result.stdout }}"
+    when: pidof_result.stdout != ""
+
+  - name: Start the new service with nohup
+    ansible.builtin.shell: |
+      cd /home/ubuntu/Dummy-Website
+      nohup ./testing-maingo > testing-maingo.out 2>&1 &
+      tail testing-maingo.out
+    register: deploy_logs
+
+  - name: Show deployment logs
+    ansible.builtin.debug:
+      var: deploy_logs.stdout_lines
