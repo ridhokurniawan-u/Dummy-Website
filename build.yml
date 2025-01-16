@@ -17,7 +17,6 @@
     environment:
       PATH: "/usr/local/go/bin:{{ ansible_env.PATH }}"
 
-  
   - name: Tidy up Go module
     ansible.builtin.command: "go mod tidy"
     args:
@@ -26,11 +25,12 @@
       PATH: "/usr/local/go/bin:{{ ansible_env.PATH }}"
   
   - name: Compile Go Code
-    ansible.builtin.command: >
-      CGO_ENABLED=0 GOOS=linux go build -o testing-maingo
-    args:
+    ansible.builtin.command: 
+      cmd: "go build -o testing-maingo"
       chdir: /tmp/Dummy-Website
     environment:
+      CGO_ENABLED: "0"
+      GOOS: "linux"
       PATH: "/usr/local/go/bin:{{ ansible_env.PATH }}"
 
   - name: Ensure build artifact exists
