@@ -2,9 +2,9 @@
   hosts: localhost
   tasks:
   - name: Add Go to PATH
-  ansible.builtin.shell: |
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-    source ~/.bashrc
+    ansible.builtin.shell: |
+      echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+      source ~/.bashrc
 
   - name: Delete Old Directory
     ansible.builtin.shell: "rm -rf /tmp/Dummy-Website"
