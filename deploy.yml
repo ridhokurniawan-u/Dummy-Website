@@ -12,9 +12,14 @@
       cd /home/ubuntu/Dummy-Website
       if [ -f testing-maingo ]; then
         mv testing-maingo /home/ubuntu/Dummy-Website/backups/testing-maingo_$(date +%F-%H:%M)
+      else
+        echo "No Backup Found"
       fi
+      
       if [ -f testing-maingo.out ]; then
         mv testing-maingo.out /home/ubuntu/Dummy-Website/backups/testing-maingo_$(date +%F-%H:%M).log
+      else
+        echo "No Old Log ound"
       fi
       
   - name: Copy the new binary to the production server
