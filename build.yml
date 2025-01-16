@@ -1,35 +1,35 @@
-name: Build
-hosts: localhost
-tasks:
-  - name: Delete Old Directory
-    ansible.builtin.shell: "rm -rf /home/ubuntu/Dummy-Website"
-    
-  - name: Clone Approved Product
-    ansible.builtin.git:
-      repo: https://github.com/ridhokurniawan-u/Dummy-Website.git
-      dest: /tmp/Dummy-Website
-      force: yes
+- name: Build
+  hosts: localhost
+  tasks:
+    - name: Delete Old Directory
+      ansible.builtin.shell: "rm -rf /home/ubuntu/Dummy-Website"
+      
+    - name: Clone Approved Product
+      ansible.builtin.git:
+        repo: https://github.com/ridhokurniawan-u/Dummy-Website.git
+        dest: /tmp/Dummy-Website
+        force: yes
+  
+    - name: Init Go Module
+      ansible.builtin.command: "go mod init mango"
+      args:
+        chdir: /tmp/Dummy-Website
+  
+    - name: Tidy up Go module
+      ansible.builtin.command: "go mod tidy"
+      args:
+        chdir: /tmp/Dummy-Website
+  
+    - name: Compile Go Code
+      ansible.builtin.command: >
+        CGO_ENABLED=0 GOOS=linux go build -o testing-maingo
+      args:
+        chdir: /tmp/Dummy-Website
 
-  - name: Init Go Module
-    ansible.builtin.command: "go mod init mango"
-    args:
-      chdir: /tmp/Dummy-Website
-
-  - name: Tidy up Go module
-    ansible.builtin.command: "go mod tidy"
-    args:
-      chdir: /tmp/Dummy-Website
-
-  - name: Compile Go Code
-    ansible.builtin.command: >
-      CGO_ENABLED=0 GOOS=linux go build -o testing-maingo
-    args:
-      chdir: /tmp/Dummy-Website
-
-  - name: Ensure build artifact exists
-    ansible.builtin.stat:
-      path: "/tmp/Dummy-Website/testing-maingo"
-    register: build_artifact
+    - name: Ensure build artifact exists
+      ansible.builtin.stat:
+        path: "/tmp/Dummy-Website/testing-maingo"
+      register: build_artifact
 
   - name: Debug build status
     ansible.builtin.debug:
