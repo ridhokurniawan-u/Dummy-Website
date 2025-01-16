@@ -1,62 +1,43 @@
-- name: Deploy Pipeline CAP with Fail-Safe
-  hosts: myhosts
+- name: Build Pipeline CAP
+  hosts: localhost
   tasks:
-  - name: Backup old version
-    ansible.builtin.file:
-      path: /home/ubuntu/Dummy-Website/backups
-      state: directory
-      mode: "0755"
+  - name: Delete Old Directory
+    ansible.builtin.shell: "rm -rf /tmp/Dummy-Website"
+      
+  - name: Clone Approved Product
+    ansible.builtin.git:
+      repo: https://github.com/ridhokurniawan-u/Dummy-Website.git
+      dest: /tmp/Dummy-Website
+      force: yes
+  
+  - name: Init Go Module
+    ansible.builtin.command: "go mod init mango"
+    args:
+      chdir: /tmp/Dummy-Website
+    environment:
+      PATH: "/usr/local/go/bin:{{ ansible_env.PATH }}"
 
-  - name: Back up the old binary and logs
-    ansible.builtin.shell: |
-      cd /home/ubuntu/Dummy-Website
-      if [ -f testing-maingo ]; then
-        cp testing-maingo /home/ubuntu/Dummy-Website/backups/testing-maingo_backup
-      fi
-      if [ -f testing-maingo.out ]; then
-        cp testing-maingo.out /home/ubuntu/Dummy-Website/backups/testing-maingo_backup.log
-      fi
+  - name: Tidy up Go module
+    ansible.builtin.command: "go mod tidy"
+    args:
+      chdir: /tmp/Dummy-Website
+    environment:
+      PATH: "/usr/local/go/bin:{{ ansible_env.PATH }}"
+  
+  - name: Compile Go Code
+    ansible.builtin.command: 
+      cmd: "go build -o testing-maingo"
+      chdir: /tmp/Dummy-Website
+    environment:
+      CGO_ENABLED: "0"
+      GOOS: "linux"
+      PATH: "/usr/local/go/bin:{{ ansible_env.PATH }}"
 
-  - name: Deploy and Start New Service
-    block:
-      - name: Copy the new binary to the production server
-        ansible.builtin.copy:
-          src: "/tmp/Dummy-Website/testing-maingo"
-          dest: "/home/ubuntu/Dummy-Website/testing-maingo"
-          mode: "0755"
+  - name: Ensure build artifact exists
+    ansible.builtin.stat:
+      path: "/tmp/Dummy-Website/testing-maingo"
+    register: build_artifact
 
-      - name: Checking old service
-        ansible.builtin.command: "pidof testing-maingo"
-        register: pidof_result
-        ignore_errors: yes
-
-      - name: Kill old process
-        ansible.builtin.shell: "sudo kill -9 {{ pidof_result.stdout }}"
-        when: pidof_result.stdout != ""
-
-      - name: Start the new service with nohup
-        ansible.builtin.shell: |
-          cd /home/ubuntu/Dummy-Website
-          nohup ./testing-maingo > testing-maingo.out 2>&1 &
-        register: deploy_logs
-
-    rescue:
-      - name: Restore old binary and logs
-        ansible.builtin.shell: |
-          cp /home/ubuntu/Dummy-Website/backups/testing-maingo_backup /home/ubuntu/Dummy-Website/testing-maingo
-          cp /home/ubuntu/Dummy-Website/backups/testing-maingo_backup.log /home/ubuntu/Dummy-Website/testing-maingo.out
-
-      - name: Restart old service
-        ansible.builtin.shell: |
-          cd /home/ubuntu/Dummy-Website
-          nohup ./testing-maingo > testing-maingo.out 2>&1 &
-        register: restore_logs
-
-      - name: Debug restoration logs
-        ansible.builtin.debug:
-          var: restore_logs.stdout_lines
-
-    always:
-      - name: Debug deployment logs
-        ansible.builtin.debug:
-          var: deploy_logs.stdout_lines
+  - name: Debug build status
+    ansible.builtin.debug:
+      msg: "Build {{ 'successful' if build_artifact.stat.exists else 'failed' }}. Binary located at /tmp/Dummy-Website/testing-maingo."
