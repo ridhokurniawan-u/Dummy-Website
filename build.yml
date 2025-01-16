@@ -14,6 +14,8 @@
     ansible.builtin.command: "go mod init mango"
     args:
       chdir: /tmp/Dummy-Website
+    environment:
+      PATH: "/usr/local/go/bin:{{ ansible_env.PATH }}"
   
   - name: Tidy up Go module
     ansible.builtin.command: "go mod tidy"
