@@ -7,7 +7,7 @@
   - name: Clone Approved Product
     ansible.builtin.git:
       repo: https://github.com/ridhokurniawan-u/Dummy-Website.git
-      dest: /tmp
+      dest: /tmp/Dummy-Website
       force: yes
   
   - name: Init Go Module
