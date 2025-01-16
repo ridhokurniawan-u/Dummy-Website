@@ -2,7 +2,7 @@
   hosts: localhost
   tasks:
   - name: Delete Old Directory
-    ansible.builtin.shell: "rm -rf /home/ubuntu/Dummy-Website"
+    ansible.builtin.shell: "rm -rf /tmp/Dummy-Website"
       
   - name: Clone Approved Product
     ansible.builtin.git:
