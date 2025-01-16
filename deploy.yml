@@ -1,4 +1,4 @@
-- name: Deploy Pipeline CAP
+- name: Deploy Pipeline CAP with Fail-Safe
   hosts: myhosts
   tasks:
   - name: Backup old version
@@ -11,39 +11,52 @@
     ansible.builtin.shell: |
       cd /home/ubuntu/Dummy-Website
       if [ -f testing-maingo ]; then
-        mv testing-maingo /home/ubuntu/Dummy-Website/backups/testing-maingo_$(date +%F-%H:%M)
-      else
-        echo "No Backup Found"
+        cp testing-maingo /home/ubuntu/Dummy-Website/backups/testing-maingo_backup
       fi
-      
       if [ -f testing-maingo.out ]; then
-        mv testing-maingo.out /home/ubuntu/Dummy-Website/backups/testing-maingo_$(date +%F-%H:%M).log
-      else
-        echo "No Log Found"
+        cp testing-maingo.out /home/ubuntu/Dummy-Website/backups/testing-maingo_backup.log
       fi
-      
-  - name: Copy the new binary to the production server
-    ansible.builtin.copy:
-      src: "/tmp/Dummy-Website/testing-maingo"
-      dest: "/home/ubuntu/Dummy-Website/testing-maingo"
-      mode: "0755"
 
-  - name: Checking old service
-    ansible.builtin.command: "pidof testing-maingo"
-    register: pidof_result
-    ignore_errors: yes
-    
-  - name: Kill process
-    ansible.builtin.shell: "sudo kill -9 {{ pidof_result.stdout }}"
-    when: pidof_result.stdout != ""
+  - name: Deploy and Start New Service
+    block:
+      - name: Copy the new binary to the production server
+        ansible.builtin.copy:
+          src: "/tmp/Dummy-Website/testing-maingo"
+          dest: "/home/ubuntu/Dummy-Website/testing-maingo"
+          mode: "0755"
 
-  - name: Start the new service with nohup
-    ansible.builtin.shell: |
-      cd /home/ubuntu/Dummy-Website
-      nohup ./testing-maingo > testing-maingo.out 2>&1 &
-      tail testing-maingo.out
-    register: deploy_logs
+      - name: Checking old service
+        ansible.builtin.command: "pidof testing-maingo"
+        register: pidof_result
+        ignore_errors: yes
 
-  - name: Show deployment logs
-    ansible.builtin.debug:
-      var: deploy_logs.stdout_lines
+      - name: Kill old process
+        ansible.builtin.shell: "sudo kill -9 {{ pidof_result.stdout }}"
+        when: pidof_result.stdout != ""
+
+      - name: Start the new service with nohup
+        ansible.builtin.shell: |
+          cd /home/ubuntu/Dummy-Website
+          nohup ./testing-maingo > testing-maingo.out 2>&1 &
+        register: deploy_logs
+
+    rescue:
+      - name: Restore old binary and logs
+        ansible.builtin.shell: |
+          cp /home/ubuntu/Dummy-Website/backups/testing-maingo_backup /home/ubuntu/Dummy-Website/testing-maingo
+          cp /home/ubuntu/Dummy-Website/backups/testing-maingo_backup.log /home/ubuntu/Dummy-Website/testing-maingo.out
+
+      - name: Restart old service
+        ansible.builtin.shell: |
+          cd /home/ubuntu/Dummy-Website
+          nohup ./testing-maingo > testing-maingo.out 2>&1 &
+        register: restore_logs
+
+      - name: Debug restoration logs
+        ansible.builtin.debug:
+          var: restore_logs.stdout_lines
+
+    always:
+      - name: Debug deployment logs
+        ansible.builtin.debug:
+          var: deploy_logs.stdout_lines
