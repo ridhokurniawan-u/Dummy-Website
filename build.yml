@@ -1,6 +1,11 @@
 - name: Build
   hosts: localhost
   tasks:
+  - name: Add Go to PATH
+  ansible.builtin.shell: |
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+    source ~/.bashrc
+
   - name: Delete Old Directory
     ansible.builtin.shell: "rm -rf /tmp/Dummy-Website"
       
@@ -14,8 +19,6 @@
     ansible.builtin.command: "go mod init mango"
     args:
       chdir: /tmp/Dummy-Website
-    environment:
-      PATH: "/usr/local/go/bin:{{ ansible_env.PATH }}"
   
   - name: Tidy up Go module
     ansible.builtin.command: "go mod tidy"
