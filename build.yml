@@ -1,4 +1,4 @@
-- name: Build
+- name: Build Pipeline CAP
   hosts: localhost
   tasks:
   - name: Delete Old Directory
