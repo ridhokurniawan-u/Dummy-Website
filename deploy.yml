@@ -1,6 +1,6 @@
 - name: Deploy Pipeline CAP
   hosts: myhosts
-  task:
+  tasks:
   - name: Backup old version
     ansible.builtin.file:
       path: /home/ubuntu/Dummy-Website/Backups
