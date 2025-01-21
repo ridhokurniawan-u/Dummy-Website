@@ -1,62 +1,104 @@
 - name: Deploy Pipeline CAP with Fail-Safe
-  hosts: myhosts
+  hosts: service_mertani
+  vars:
+    deploy_dir: /home/ubuntu/testing-maingo
+
   tasks:
-  - name: Backup old version
+  - name: Create backups directory
     ansible.builtin.file:
-      path: /home/ubuntu/Dummy-Website/backups
+      path: "{{ deploy_dir }}/backups"
       state: directory
       mode: "0755"
 
   - name: Back up the old binary and logs
     ansible.builtin.shell: |
-      cd /home/ubuntu/Dummy-Website
+      cd {{ deploy_dir }}
+      timestamp=$(date +%Y-%m-%d-%H:%M:%S)
       if [ -f testing-maingo ]; then
-        cp testing-maingo /home/ubuntu/Dummy-Website/backups/testing-maingo_backup
+        mv testing-maingo backups/testing-maingo_backup_${timestamp}
       fi
       if [ -f testing-maingo.out ]; then
-        cp testing-maingo.out /home/ubuntu/Dummy-Website/backups/testing-maingo_backup.log
+        mv testing-maingo.out backups/testing-maingo_backup_${timestamp}.log
       fi
 
   - name: Deploy and Start New Service
     block:
       - name: Copy the new binary to the production server
         ansible.builtin.copy:
-          src: "/tmp/Dummy-Website/testing-maingo"
-          dest: "/home/ubuntu/Dummy-Website/testing-maingo"
+          src: "/tmp/testing-maingo"
+          dest: "{{ deploy_dir }}/testing-maingo"
           mode: "0755"
 
-      - name: Checking old service
+      - name: Check if the old service is running
         ansible.builtin.command: "pidof testing-maingo"
         register: pidof_result
         ignore_errors: yes
 
-      - name: Kill old process
+      - name: Kill old process if running
         ansible.builtin.shell: "sudo kill -9 {{ pidof_result.stdout }}"
         when: pidof_result.stdout != ""
 
       - name: Start the new service with nohup
         ansible.builtin.shell: |
-          cd /home/ubuntu/Dummy-Website
+          cd {{ deploy_dir }}
           nohup ./testing-maingo > testing-maingo.out 2>&1 &
+        notify: restart backend service
         register: deploy_logs
 
+      - name: Verify the new service is running
+        ansible.builtin.command: "pidof testing-maingo"
+        register: new_service_pid
+        failed_when: new_service_pid.stdout == ""
+
+      - name: Debug new service PID
+        ansible.builtin.debug:
+          var: new_service_pid.stdout
+
     rescue:
+      - name: Get latest binary backup
+        ansible.builtin.shell: |
+          sudo ls -t {{ deploy_dir }}/backups/testing-maingo_backup_* 2>/dev/null | grep -v ".log" | head -n 1
+        register: latest_binary
+        failed_when: latest_binary.stdout == ""
+        
+      - name: Get latest log backup
+        ansible.builtin.shell: |
+          sudo ls -t {{ deploy_dir }}/backups/testing-maingo_backup_*.log 2>/dev/null | head -n 1
+        register: latest_log
+        failed_when: latest_log.stdout == ""
+
       - name: Restore old binary and logs
         ansible.builtin.shell: |
-          cp /home/ubuntu/Dummy-Website/backups/testing-maingo_backup /home/ubuntu/Dummy-Website/testing-maingo
-          cp /home/ubuntu/Dummy-Website/backups/testing-maingo_backup.log /home/ubuntu/Dummy-Website/testing-maingo.out
+          sudo mv "{{ latest_binary.stdout }}" {{ deploy_dir }}/testing-maingo
+          sudo mv "{{ latest_log.stdout }}" {{ deploy_dir }}/testing-maingo.out
+          sudo chown ubuntu:ubuntu {{ deploy_dir }}/testing-maingo
+          sudo chown ubuntu:ubuntu {{ deploy_dir }}/testing-maingo.out
+          sudo chmod 755 {{ deploy_dir }}/testing-maingo
+          sudo chmod 644 {{ deploy_dir }}/testing-maingo.out
 
       - name: Restart old service
         ansible.builtin.shell: |
-          cd /home/ubuntu/Dummy-Website
+          cd {{ deploy_dir }}
           nohup ./testing-maingo > testing-maingo.out 2>&1 &
-        register: restore_logs
+          echo $!
+        register: restore_pid
 
-      - name: Debug restoration logs
+      - name: Verify restored service
+        ansible.builtin.command: "pidof testing-maingo"
+        register: restored_pid
+        failed_when: restored_pid.stdout == ""
+
+      - name: Debug restoration
         ansible.builtin.debug:
-          var: restore_logs.stdout_lines
+          msg: "Restored service PID: {{ restored_pid.stdout }}"
 
     always:
       - name: Debug deployment logs
         ansible.builtin.debug:
           var: deploy_logs.stdout_lines
+
+  handlers:
+    - name: restart backend service
+      ansible.builtin.shell: |
+        cd {{ deploy_dir }}
+        nohup ./testing-maingo > testing-maingo.out 2>&1 &
