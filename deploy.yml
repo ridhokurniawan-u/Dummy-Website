@@ -1,5 +1,5 @@
 - name: Deploy Pipeline CAP with Fail-Safe
-  hosts: service_mertani
+  hosts: myhosts
   vars:
     deploy_dir: /home/ubuntu/testing-maingo
 
