@@ -1,7 +1,7 @@
 - name: Deploy Pipeline CAP with Fail-Safe
   hosts: myhosts
   vars:
-    deploy_dir: /home/ubuntu/mertani-backend-revamp
+    deploy_dir: /home/ubuntu/testing-maingo
 
   tasks:
   - name: Create backups directory
@@ -14,23 +14,23 @@
     ansible.builtin.shell: |
       cd {{ deploy_dir }}
       timestamp=$(date +%Y-%m-%d-%H:%M:%S)
-      if [ -f mertani-backend-revamp ]; then
-        mv mertani-backend-revamp backups/mertani-backend-revamp_backup_${timestamp}
+      if [ -f testing-maingo ]; then
+        mv testing-maingo backups/testing-maingo_backup_${timestamp}
       fi
-      if [ -f mertani-backend-revamp.out ]; then
-        mv mertani-backend-revamp.out backups/mertani-backend-revamp_backup_${timestamp}.log
+      if [ -f testing-maingo.out ]; then
+        mv testing-maingo.out backups/testing-maingo_backup_${timestamp}.log
       fi
 
   - name: Deploy and Start New Service
     block:
       - name: Copy the new binary to the production server
         ansible.builtin.copy:
-          src: "/tmp/mertani-backend-revamp/mertani-backend-revamp"
-          dest: "{{ deploy_dir }}/mertani-backend-revamp"
+          src: "/tmp/Dummy-Website"
+          dest: "{{ deploy_dir }}/testing-maingo"
           mode: "0755"
 
       - name: Check if the old service is running
-        ansible.builtin.command: "pidof mertani-backend-revamp"
+        ansible.builtin.command: "pidof testing-maingo"
         register: pidof_result
         ignore_errors: yes
 
@@ -41,12 +41,12 @@
       - name: Start the new service with nohup
         ansible.builtin.shell: |
           cd {{ deploy_dir }}
-          nohup ./mertani-backend-revamp -p prod > mertani-backend-revamp.out 2>&1 &
+          nohup ./testing-maingo -p prod > testing-maingo.out 2>&1 &
         notify: restart backend service
         register: deploy_logs
 
       - name: Verify the new service is running
-        ansible.builtin.command: "pidof mertani-backend-revamp"
+        ansible.builtin.command: "pidof testing-maingo"
         register: new_service_pid
         failed_when: new_service_pid.stdout == ""
 
@@ -56,7 +56,7 @@
 
     rescue:
       - name: Debug running process during rescue
-        ansible.builtin.command: "pidof mertani-backend-revamp"
+        ansible.builtin.command: "pidof testing-maingo"
         register: rescue_pid_debug
         ignore_errors: yes
         changed_when: false
@@ -67,8 +67,8 @@
     
       - name: Get latest binary file
         ansible.builtin.shell: |
-          if [ "$(ls -t {{ deploy_dir }}/backups/mertani-backend-revamp_backup_* 2>/dev/null | wc -l)" -ne "0" ]; then
-            ls -t {{ deploy_dir }}/backups/mertani-backend-revamp_backup_* | head -n 1
+          if [ "$(ls -t {{ deploy_dir }}/backups/testing-maingo_backup_* 2>/dev/null | wc -l)" -ne "0" ]; then
+            ls -t {{ deploy_dir }}/backups/testing-maingo_backup_* | head -n 1
           else
             echo "No backup file found."
           fi
@@ -78,15 +78,15 @@
     
       - name: Get latest log file
         ansible.builtin.shell: |
-          ls -t {{ deploy_dir }}/backups/mertani-backend-revamp_backup_*.log | head -n 1
+          ls -t {{ deploy_dir }}/backups/testing-maingo_backup_*.log | head -n 1
         register: latest_log
         changed_when: false
         become: yes
     
       - name: Move backup
         ansible.builtin.shell: |
-          cp {{ latest_compiled.stdout }} {{ deploy_dir }}/mertani-backend-revamp
-          cp {{ latest_log.stdout }} {{ deploy_dir }}/mertani-backend-revamp.out
+          cp {{ latest_compiled.stdout }} {{ deploy_dir }}/testing-maingo
+          cp {{ latest_log.stdout }} {{ deploy_dir }}/testing-maingo.out
         become: yes
     
       - name: Restart old service
@@ -102,4 +102,4 @@
     - name: restart backend service
       ansible.builtin.shell: |
         cd {{ deploy_dir }}
-        nohup ./mertani-backend-revamp -p prod > mertani-backend-revamp.out 2>&1 &
+        nohup ./testing-maingo -p prod > testing-maingo.out 2>&1 &
