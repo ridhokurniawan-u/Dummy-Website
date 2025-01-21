@@ -57,14 +57,12 @@
 
     rescue:
       - name: Get latest binary backup
-        ansible.builtin.shell: |
-          sudo ls -t {{ deploy_dir }}/backups/testing-maingo_backup_* 2>/dev/null | grep -v ".log" | head -n 1
+        ansible.builtin.command: "sudo ls -t {{ deploy_dir }}/backups/testing-maingo_backup_* 2>/dev/null | grep -v ".log" | head -n 1"
         register: latest_binary
         failed_when: latest_binary.stdout == ""
         
       - name: Get latest log backup
-        ansible.builtin.shell: |
-          sudo ls -t {{ deploy_dir }}/backups/testing-maingo_backup_*.log 2>/dev/null | head -n 1
+        ansible.builtin.command: "sudo ls -t {{ deploy_dir }}/backups/testing-maingo_backup_*.log 2>/dev/null | head -n 1"
         register: latest_log
         failed_when: latest_log.stdout == ""
 
