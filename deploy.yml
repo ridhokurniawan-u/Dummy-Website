@@ -25,8 +25,8 @@
     block:
       - name: Copy the new binary to the production server
         ansible.builtin.copy:
-          src: "/tmp/testing-maingo"
-          dest: "{{ deploy_dir }}/testing-maingo"
+          src: "/tmp/Dummy-Website"
+          dest: "{{ deploy_dir }}"
           mode: "0755"
 
       - name: Check if the old service is running
