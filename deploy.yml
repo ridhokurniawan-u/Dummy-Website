@@ -43,6 +43,7 @@
           cd {{ deploy_dir }}
           nohup ./testing-maingo > testing-maingo.out 2>&1 &
         notify: restart backend service
+        ignore_errors: yes
         register: deploy_logs
 
       - name: Verify the new service is running
@@ -82,6 +83,7 @@
           nohup ./testing-maingo > testing-maingo.out 2>&1 &
           echo $!
         register: restore_pid
+        ignore_errors: yes
 
       - name: Verify restored service
         ansible.builtin.command: "pidof testing-maingo"
@@ -102,3 +104,4 @@
       ansible.builtin.shell: |
         cd {{ deploy_dir }}
         nohup ./testing-maingo > testing-maingo.out 2>&1 &
+      ignore_errors: yes
