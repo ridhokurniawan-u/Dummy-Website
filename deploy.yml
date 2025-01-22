@@ -4,126 +4,115 @@
     deploy_dir: /home/ubuntu/testing-maingo
 
   tasks:
-  - name: Create backups directory
-    ansible.builtin.file:
-      path: "{{ deploy_dir }}/backups"
-      state: directory
-      mode: "0755"
+    - name: Create backups directory
+      ansible.builtin.file:
+        path: "{{ deploy_dir }}/backups"
+        state: directory
+        mode: "0755"
 
-  - name: Back up the old binary and logs
-    ansible.builtin.shell: |
-      cd {{ deploy_dir }}
-      timestamp=$(date +%Y-%m-%d-%H:%M:%S)
-      if [ -f testing-maingo ]; then
-        mv testing-maingo backups/testing-maingo_backup_${timestamp}
-      fi
-      if [ -f testing-maingo.out ]; then
-        mv testing-maingo.out backups/testing-maingo_backup_${timestamp}.log
-      fi
+    - name: Back up the old binary and logs
+      ansible.builtin.shell: |
+        cd {{ deploy_dir }}
+        timestamp=$(date +%Y-%m-%d-%H:%M:%S)
+        if [ -f testing-maingo ]; then
+          mv testing-maingo backups/testing-maingo_backup_${timestamp}
+        fi
+        if [ -f testing-maingo.out ]; then
+          mv testing-maingo.out backups/testing-maingo_backup_${timestamp}.log
+        fi
 
-  - name: Checking Backup file quantity
-    find:
-      path: "{{ deploy_dir }}/backups"
-      recurse: No
-      patterns: "testing-maingo_backup*"
-    register: file_limit
+    - name: Checking Backup file quantity
+      ansible.builtin.find:
+        path: "{{ deploy_dir }}/backups"
+        recurse: no
+        patterns: "testing-maingo_backup*"
+      register: found_files
 
-  - name: Get timestamps from filenames
-    set_fact:
-      sorted_files: "{{ found_files.files | map(attribute='path') | map('regex_search', '_(\d{4}-\d{2}-\d{2}-\d{2}:\d{2}:\d{2})') | zip(found_files.files) | map('last') | sort }}"
+    - name: Delete oldest backup file if limit exceeded
+      ansible.builtin.file:
+        path: "{{ (found_files.files | sort(attribute='ctime'))[0].path }}"
+        state: absent
+      when: found_files.matched > 5
+      notify: Oldest Backup Files deleted
 
-  - name: Delete Files from sorted
-    file:
-      path: "{{ sorted_files[0][1].path }}"
-      state: absent
-    when: file_limit.matched > 5
-    notify:
-      - Oldest Backup Files deleted
-        
+    - name: Deploy and Start New Service
+      block:
+        - name: Copy the new binary to the production server
+          ansible.builtin.copy:
+            src: "/tmp/Dummy-Website/testing-maingo"
+            dest: "{{ deploy_dir }}"
+            mode: "0755"
 
-  - name: Deploy and Start New Service
-    block:
-      - name: Copy the new binary to the production server
-        ansible.builtin.copy:
-          src: "/tmp/Dummy-Website/testing-maingo"
-          dest: "{{ deploy_dir }}"
-          mode: "0755"
+        - name: Check if the old service is running
+          ansible.builtin.command: "pidof testing-maingo"
+          register: pidof_result
+          ignore_errors: yes
 
-      - name: Check if the old service is running
-        ansible.builtin.command: "pidof testing-maingo"
-        register: pidof_result
-        ignore_errors: yes
+        - name: Kill old process if running
+          ansible.builtin.shell: "sudo kill -9 {{ pidof_result.stdout }}"
+          when: pidof_result.stdout != ""
 
-      - name: Kill old process if running
-        ansible.builtin.shell: "sudo kill -9 {{ pidof_result.stdout }}"
-        when: pidof_result.stdout != ""
+        - name: Start the new service with nohup
+          ansible.builtin.shell: |
+            cd {{ deploy_dir }}
+            nohup ./testing-maingo -p prod > testing-maingo.out 2>&1 &
+          notify: restart backend service
+          register: deploy_logs
 
-      - name: Start the new service with nohup
-        ansible.builtin.shell: |
-          cd {{ deploy_dir }}
-          nohup ./testing-maingo -p prod > testing-maingo.out 2>&1 &
-        notify: restart backend service
-        register: deploy_logs
+        - name: Verify the new service is running
+          ansible.builtin.command: "pidof testing-maingo"
+          register: new_service_pid
+          failed_when: new_service_pid.stdout == ""
 
-      - name: Verify the new service is running
-        ansible.builtin.command: "pidof testing-maingo"
-        register: new_service_pid
-        failed_when: new_service_pid.stdout == ""
+        - name: Debug new service PID
+          ansible.builtin.debug:
+            var: new_service_pid.stdout
 
-      - name: Debug new service PID
-        ansible.builtin.debug:
-          var: new_service_pid.stdout
-      
-    rescue:
-      - name: Debug running process during rescue
-        ansible.builtin.command: "pidof testing-maingo"
-        register: rescue_pid_debug
-        ignore_errors: yes
-        changed_when: false
-    
-      - name: Debug PID in rescue mode
-        ansible.builtin.debug:
-          var: rescue_pid_debug.stdout_lines
-    
-      - name: Get latest binary file
-        ansible.builtin.shell: |
-          if [ "$(ls -t {{ deploy_dir }}/backups/testing-maingo_backup_* 2>/dev/null | wc -l)" -ne "0" ]; then
-            ls -t {{ deploy_dir }}/backups/testing-maingo_backup_* | head -n 1
-          else
-            echo "No backup file found."
-          fi
-        register: latest_compiled
-        changed_when: false
-        become: yes
-    
-      - name: Get latest log file
-        ansible.builtin.shell: |
-          ls -t {{ deploy_dir }}/backups/testing-maingo_backup_*.log | head -n 1
-        register: latest_log
-        changed_when: false
-        become: yes
-    
-      - name: Move backup
-        ansible.builtin.shell: |
-          cp {{ latest_compiled.stdout }} {{ deploy_dir }}/testing-maingo
-          cp {{ latest_log.stdout }} {{ deploy_dir }}/testing-maingo.out
-        become: yes
-    
-      - name: Restart old service
-        ansible.builtin.meta: flush_handlers
-        register: restore_logs
-        become: yes
-    
-      - name: Debug restoration logs
-        ansible.builtin.debug:
-          var: restore_logs.stdout_lines
-          
+      rescue:
+        - name: Debug running process during rescue
+          ansible.builtin.command: "pidof testing-maingo"
+          register: rescue_pid_debug
+          ignore_errors: yes
+          changed_when: false
+
+        - name: Debug PID in rescue mode
+          ansible.builtin.debug:
+            var: rescue_pid_debug.stdout_lines
+
+        - name: Get latest binary file
+          ansible.builtin.shell: |
+            ls -t {{ deploy_dir }}/backups/testing-maingo_backup_* 2>/dev/null | head -n 1 || echo "No backup file found."
+          register: latest_compiled
+          changed_when: false
+          become: yes
+
+        - name: Get latest log file
+          ansible.builtin.shell: |
+            ls -t {{ deploy_dir }}/backups/testing-maingo_backup_*.log | head -n 1 || echo "No backup log found."
+          register: latest_log
+          changed_when: false
+          become: yes
+
+        - name: Move backup
+          ansible.builtin.shell: |
+            cp {{ latest_compiled.stdout }} {{ deploy_dir }}/testing-maingo
+            cp {{ latest_log.stdout }} {{ deploy_dir }}/testing-maingo.out
+          become: yes
+
+        - name: Restart old service
+          ansible.builtin.meta: flush_handlers
+          become: yes
+
+        - name: Debug restoration logs
+          ansible.builtin.debug:
+            msg: "Restoration logs: {{ restore_logs.stdout_lines | default('No logs available') }}"
+
   handlers:
     - name: restart backend service
       ansible.builtin.shell: |
         cd {{ deploy_dir }}
         nohup ./testing-maingo -p prod > testing-maingo.out 2>&1 &
 
-    - name: Oldest File deleted handler
-      debug:
+    - name: Oldest Backup Files deleted
+      ansible.builtin.debug:
         msg: "The oldest backup file has been deleted."
