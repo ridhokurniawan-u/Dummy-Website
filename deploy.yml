@@ -21,20 +21,6 @@
           mv testing-maingo.out backups/testing-maingo_backup_${timestamp}.log
         fi
 
-    - name: Checking Backup file quantity
-      ansible.builtin.find:
-        path: "{{ deploy_dir }}/backups"
-        recurse: no
-        patterns: "testing-maingo_backup*"
-      register: found_files
-
-    - name: Delete oldest backup file if limit exceeded
-      ansible.builtin.file:
-        path: "{{ (found_files.files | sort(attribute='ctime'))[0].path }}"
-        state: absent
-      when: found_files.matched > 5
-      notify: Oldest Backup Files deleted
-
     - name: Deploy and Start New Service
       block:
         - name: Copy the new binary to the production server
@@ -112,7 +98,3 @@
       ansible.builtin.shell: |
         cd {{ deploy_dir }}
         nohup ./testing-maingo -p prod > testing-maingo.out 2>&1 &
-
-    - name: Oldest Backup Files deleted
-      ansible.builtin.debug:
-        msg: "The oldest backup file has been deleted."
